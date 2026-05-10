@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — WanderOn</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>
+      </svg>
+      WanderOn
+    </div>
+    <a href="/logout" class="btn-logout">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      Sign out
+    </a>
+  </nav>
+
+  <main class="dashboard">
+
+    <!-- Loading state -->
+    <div id="loadingState" class="dashboard-card text-center">
+      <div class="spinner"></div>
+      <p class="text-muted">Loading your profile...</p>
+    </div>
+
+    <!-- Profile card -->
+    <div id="profileCard" class="dashboard-card profile-card hidden">
+      <div class="profile-avatar" id="profileAvatar"></div>
+      <div class="profile-info">
+        <h1 id="profileGreeting">Welcome back!</h1>
+        <div class="profile-fields">
+          <div class="profile-field">
+            <span class="field-label">Username</span>
+            <span class="field-value" id="profileUsername">—</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Email</span>
+            <span class="field-value" id="profileEmail">—</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Member since</span>
+            <span class="field-value" id="profileCreated">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div id="statsGrid" class="stats-grid hidden">
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-teal">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="stat-label">Account</p>
+          <p class="stat-value">Active</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <p class="stat-label">Auth</p>
+          <p class="stat-value">OAuth 2.0</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="stat-label">Session</p>
+          <p class="stat-value">Secure</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Error state -->
+    <div id="errorState" class="dashboard-card error-card hidden">
+      <svg width="40" height="40" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <p id="errorMessage">Could not load your profile.</p>
+      <a href="/" class="btn-primary btn-inline">Back to home</a>
+    </div>
+
+  </main>
+
+  <script>
+    (async function loadProfile() {
+      const loading  = document.getElementById('loadingState');
+      const profile  = document.getElementById('profileCard');
+      const stats    = document.getElementById('statsGrid');
+      const errorEl  = document.getElementById('errorState');
+      const errorMsg = document.getElementById('errorMessage');
+
+      try {
+        const res = await fetch('/api/me', { credentials: 'same-origin' });
+
+        if (res.status === 401) {
+          window.location.href = '/?error=session_expired';
+          return;
+        }
+        if (!res.ok) {
+          throw new Error(`Server returned ${res.status}`);
+        }
+
+        const user = await res.json();
+
+        // All values written via textContent — never innerHTML — to prevent XSS
+        document.getElementById('profileGreeting').textContent  = `Welcome back, ${user.username}!`;
+        document.getElementById('profileUsername').textContent  = user.username;
+        document.getElementById('profileEmail').textContent     = user.email;
+        document.getElementById('profileCreated').textContent   = user.created_at
+          ? new Date(user.created_at).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            })
+          : '—';
+
+        // Avatar: first two letters of username, uppercased
+        document.getElementById('profileAvatar').textContent =
+          user.username.slice(0, 2).toUpperCase();
+
+        loading.classList.add('hidden');
+        profile.classList.remove('hidden');
+        stats.classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Profile fetch error:', err);
+        loading.classList.add('hidden');
+        // textContent prevents error message from containing executable HTML
+        errorMsg.textContent = 'Failed to load your profile. Please try again.';
+        errorEl.classList.remove('hidden');
+      }
+    })();
+  </script>
+
+</body>
+</html>
