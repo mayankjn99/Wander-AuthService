@@ -245,9 +245,10 @@ app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error('Session destroy error:', err);
     res.clearCookie('client.sid');
-    // Also destroy the auth server session so the next OAuth flow
-    // requires credentials again (prevents silent re-login).
-    const postLogout = encodeURIComponent(`http://localhost:${PORT}/`);
+    // Use the configured REDIRECT_URI origin as the post-logout destination
+    // so this works correctly in both local dev and production deployments.
+    const appOrigin = new URL(REDIRECT_URI).origin;
+    const postLogout = encodeURIComponent(`${appOrigin}/`);
     res.redirect(`${AUTH_SERVER}/logout?post_logout_redirect_uri=${postLogout}`);
   });
 });
