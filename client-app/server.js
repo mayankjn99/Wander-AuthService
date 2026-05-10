@@ -38,6 +38,9 @@ const path    = require('path');
 
 const app = express();
 
+// Trust Render's reverse proxy so secure session cookies work on HTTPS
+app.set('trust proxy', 1);
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 const AUTH_SERVER  = (process.env.AUTH_SERVER_URL || 'http://localhost:3000').replace(/\/$/, '');
 const CLIENT_ID    = process.env.CLIENT_ID    || 'client-app-1';

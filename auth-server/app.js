@@ -18,6 +18,13 @@ const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
+// ─── Reverse proxy trust ──────────────────────────────────────────────────────
+// Required on Render, Railway, Heroku etc. — the app sits behind a load
+// balancer that forwards requests via X-Forwarded-* headers. Without this,
+// Express sees every connection as HTTP, secure cookies are never sent, and
+// the session is lost between POST /register → GET /authorize.
+app.set('trust proxy', 1);
+
 // ─── Security Headers ─────────────────────────────────────────────────────────
 app.use(
   helmet({
