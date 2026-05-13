@@ -99,6 +99,7 @@ exports.home = (req, res) => {
 
 /** GET /login */
 exports.showLogin = (req, res) => {
+  console.log('Rendering login page with query:', req.query);
   res.render('login', {
     error: null,
     errorField: null,

@@ -28,6 +28,25 @@
 
   <main class="dashboard">
 
+    <!-- Search bar -->
+    <div class="dashboard-card search-container">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/>
+          <path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search users..."
+          autocomplete="off"
+        />
+        <span id="searchSpinner" class="search-spinner hidden"></span>
+      </div>
+      <ul id="searchResults" class="search-results hidden"></ul>
+    </div>
+
     <!-- Loading state -->
     <div id="loadingState" class="dashboard-card text-center">
       <div class="spinner"></div>
@@ -111,6 +130,111 @@
     </div>
 
   </main>
+
+  <style>
+    .search-container { position: relative; }
+    .search-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-secondary, #f9fafb);
+      border: 1px solid var(--border-color, #e5e7eb);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+    }
+    .search-icon { color: #9ca3af; flex-shrink: 0; }
+    .search-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      font-size: 0.95rem;
+      color: inherit;
+    }
+    .search-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #e5e7eb;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .search-results {
+      list-style: none;
+      margin: 0.5rem 0 0;
+      padding: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color, #e5e7eb);
+      border-radius: 0.5rem;
+    }
+    .search-results li {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border-color, #e5e7eb);
+      font-size: 0.9rem;
+    }
+    .search-results li:last-child { border-bottom: none; }
+    .search-no-results { color: #9ca3af; text-align: center; }
+  </style>
+
+  <script>
+    // Debounced search — fires API call after user stops typing for 400ms
+    (function initSearch() {
+      const input = document.getElementById('searchInput');
+      const spinner = document.getElementById('searchSpinner');
+      const resultsList = document.getElementById('searchResults');
+      let debounceTimer = null;
+
+      input.addEventListener('input', function () {
+        const query = input.value.trim();
+
+        clearTimeout(debounceTimer);
+
+        if (!query) {
+          resultsList.classList.add('hidden');
+          resultsList.innerHTML = '';
+          spinner.classList.add('hidden');
+          return;
+        }
+
+        spinner.classList.remove('hidden');
+
+        debounceTimer = setTimeout(async () => {
+          try {
+            const res = await fetch(
+              `/api/search?q=${encodeURIComponent(query)}`,
+              { credentials: 'same-origin' }
+            );
+
+            if (!res.ok) throw new Error('Search failed');
+
+            const data = await res.json();
+
+            resultsList.innerHTML = '';
+            if (data.results && data.results.length > 0) {
+              data.results.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.username || item.name || JSON.stringify(item);
+                resultsList.appendChild(li);
+              });
+            } else {
+              const li = document.createElement('li');
+              li.className = 'search-no-results';
+              li.textContent = 'No results found';
+              resultsList.appendChild(li);
+            }
+            resultsList.classList.remove('hidden');
+          } catch (err) {
+            console.error('Search error:', err);
+            resultsList.innerHTML = '<li class="search-no-results">Search error</li>';
+            resultsList.classList.remove('hidden');
+          } finally {
+            spinner.classList.add('hidden');
+          }
+        }, 400);
+      });
+    })();
+  </script>
 
   <script>
     (async function loadProfile() {

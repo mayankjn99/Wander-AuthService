@@ -256,6 +256,38 @@ app.get('/logout', (req, res) => {
   });
 });
 
+app.get('/api/search', async (req, res) => {
+  const { q } = req.query;
+  if (!req.session.isAuthenticated || !req.session.accessToken) {
+    return res.status(401).json({ error: 'not_authenticated' });
+  }
+
+  try {
+    const mutualFundResponse = await fetch(`http://api.mfapi.in/mf/search?q=$q`, {
+      headers: { Authorization: `Bearer ${req.session.accessToken}` },
+    });
+
+    if (!mutualFundResponse.ok) {
+      if (mutualFundResponse.status === 401) {
+        // Token expired or invalid — clear session and ask user to re-login
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: 'session_expired' });
+      }
+      throw new Error(`Userinfo request failed: ${userRes.status}`);
+    }
+
+    const mutualFundList = await mutualFundResponse.json();
+    const results = mutualFundList.map(fund => fund.schemeName);
+    console.log("Search results for query:", q, results);
+    res.status(200).json({ results });
+  } catch (err) {
+    console.error('API /search error:', err.message);
+    res.status(500).json({ error: 'server_error' });
+  }
+  
+});
+  // Simulate search results based on the query
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✓ Client app listening on http://localhost:${PORT}`);
